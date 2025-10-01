@@ -1,0 +1,74 @@
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import { GoogleGenAI } from '@google/genai';
+
+import 'dotenv/config';
+
+//mulai persiapan project
+//1. inisialisasi express
+
+const app = express();
+const ai = new GoogleGenAI({});
+
+//2.inisialisasi middleware
+app.use(cors());
+// app.use(multer());
+app.use(express.json());
+
+//3.inisialisasi endpoint
+//[HTTP method: GET, POST, PUT, PATCH, DELETE]
+//.get() --> mainly mengambil data/search
+//.post() --> mainly menaruh/post data baru ke server
+//.put() --> mainly menimpa data yang sudah ada di server
+//.patch() --> mainly untuk menambal data yang sudah ada di server
+//.delete() --> mainly menghapus data yang ada di server
+app.post(
+    '/chat', //http://localhost:[PORT]/chat
+    async (req, res) => {
+        const { body } = req;
+        const { prompt } = body;
+
+        //guard clause/ pengecekan kondisi
+        if(!prompt || typeof prompt !== 'string'){
+            res.status(400).json({
+                message: "Prompt harus diisi dan berupa string!",
+                data: null,
+                success: false
+            });
+            return;
+        }
+        try {
+            //3rd party API -- google AI
+            const aiResponse = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [
+                    {
+                        parts: [
+                        { text: prompt}
+                        ]   
+                    }
+                ]
+            });
+
+            res.status(200).json({
+                success: true,
+                data: aiResponse.text,
+                message: "Berhasil ditanggapi oleh Google Gemini Flash!"
+            });
+
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({
+                success: false,
+                data: null,
+                message: e.message || "Ada masalah di server!"
+            })
+        }
+    }
+);
+
+//entry point 
+app.listen(3000, ()=>{
+    console.log("I Love U 3000");
+});
