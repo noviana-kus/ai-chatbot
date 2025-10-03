@@ -1,5 +1,5 @@
 // proses import dependency ke dalam file index.js
-import express from 'express';
+import express, { text } from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { GoogleGenAI } from '@google/genai';
@@ -18,6 +18,8 @@ const ai = new GoogleGenAI({});
 app.use(cors());
 // app.use(multer());
 app.use(express.json());
+app.use(express.static('public'));
+
 
 // 3. inisialisasi endpoint
 // [HTTP method: GET, POST, PUT, PATCH, DELETE]
@@ -32,19 +34,64 @@ app.post(
   '/chat', // http://localhost:[PORT]/chat
   async (req, res) => {
     const { body } = req;
-    const { prompt } = body;
+    const { prompt: conversation } = body;
+
+    //body
+    //{
+    //conversation[]
+    //  {role: ''('user'|'model'), text:''}
+    //  ] //cek role sm text
+    //}
+  
 
     // guard clause -- satpam
-    if (!prompt || typeof prompt !== 'string') {
+    if (!conversation || !Array.isArray(conversation)) {
       res.status(400).json({
-        message: "Prompt harus diisi dan berupa string!",
+        message: "Percakapan harus valid!",
         data: null,
         success: false
       });
       return;
     }
 
-    // dagingnya (A5 wagyu nih)
+    // guard clause #2 
+    const conversationIsValid = conversation.every(message) =>{
+      //kondisi 1 -- messace harus truth
+      if(!message) return false;
+
+      //kondisi 2 -- messace object bkn array
+      if(typeof message !== 'object' || Array.isArray(message)) return false;
+
+      //kondisi 3 - messace berisi role dan text
+      const keys = Object.keys(message);
+      const keyLengthIsValid = keys.length === 2;
+      const keyContainsValidName = keys.every(key => ['role','text'].includes(key));
+
+      if(!keyLengthIsValid || !keyContainsValidName) return false;
+
+      //kondisi 4 -- role user/model -- text string
+      const { role, text } = message;
+      const roleIsValid = ['user', 'model'].includes(role);
+      const textIsValid = typeof text === 'string';
+
+      if(!roleIsValid || !textIsValid) return false;
+
+
+      return true;
+    };
+    //
+    if(!conversationIsValid){
+       res.status(400).json({
+        message: "Percakapan harus valid!",
+        data: null,
+        success: false
+      });
+      return;
+    }
+
+    const contents =conversation.map();
+
+    // main course
     try {
       // 3rd party API -- Google AI
       const aiResponse = await ai.models.generateContent({
@@ -52,7 +99,7 @@ app.post(
         contents: [
           {
             parts: [
-              { text: prompt }
+              { text: conversation }
             ]
           }
         ]
