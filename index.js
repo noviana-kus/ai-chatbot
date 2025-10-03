@@ -1,5 +1,5 @@
 // proses import dependency ke dalam file index.js
-import express, { text } from 'express';
+import express from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { GoogleGenAI } from '@google/genai';
@@ -11,7 +11,9 @@ import 'dotenv/config';
 // 1. inisialisasi express
 
 const app = express();
-const ai = new GoogleGenAI({});
+const ai = new GoogleGenAI({
+  apiKey: process.env.GOOGLE_API_KEY,
+});
 
 // 2. inisialisasi middleware
 
@@ -34,7 +36,7 @@ app.post(
   '/chat', // http://localhost:[PORT]/chat
   async (req, res) => {
     const { body } = req;
-    const { prompt: conversation } = body;
+    const { conversation } = body;
 
     //body
     //{
@@ -55,7 +57,7 @@ app.post(
     }
 
     // guard clause #2 
-    const conversationIsValid = conversation.every(message) =>{
+    const conversationIsValid = conversation.every((message) => {
       //kondisi 1 -- messace harus truth
       if(!message) return false;
 
@@ -78,8 +80,8 @@ app.post(
 
 
       return true;
-    };
-    //
+    });
+    
     if(!conversationIsValid){
        res.status(400).json({
         message: "Percakapan harus valid!",
@@ -89,20 +91,18 @@ app.post(
       return;
     }
 
-    const contents =conversation.map();
+    // Map the conversation to the format expected by the Google GenAI SDK
+    const contents = conversation.map(({ role, text }) => ({
+      role,
+      parts: [{ text }],
+    }));
 
     // main course
     try {
       // 3rd party API -- Google AI
-      const aiResponse = await ai.models.generateContent({
+       const aiResponse = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
-        contents: [
-          {
-            parts: [
-              { text: conversation }
-            ]
-          }
-        ]
+        contents
       });
 
       res.status(200).json({
