@@ -48,10 +48,16 @@ form.addEventListener('submit', async function (e) {
 });
 
 function appendMessage(sender, text) {
+  const msgWrapper = document.createElement('div');
+  msgWrapper.classList.add('message-wrapper', `${sender}-wrapper`);
+
   const msg = document.createElement('div');
   msg.classList.add('message', sender);
   msg.textContent = text;
-  chatBox.appendChild(msg);
+
+  msgWrapper.appendChild(msg);
+  chatBox.appendChild(msgWrapper);
+
   chatBox.scrollTop = chatBox.scrollHeight;
   return msg; // Return the message element
 }
